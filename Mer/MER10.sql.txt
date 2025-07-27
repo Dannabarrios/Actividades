@@ -1,0 +1,144 @@
+CREATE DATABASE GestionConciertos;
+USE GestionConciertos;
+
+-- TABLAS PRINCIPALES
+
+CREATE TABLE Artista (
+  artista_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  genero VARCHAR(50)
+);
+
+CREATE TABLE Escenario (
+  escenario_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  ciudad VARCHAR(100),
+  capacidad INT
+);
+
+CREATE TABLE Concierto (
+  concierto_id INT AUTO_INCREMENT PRIMARY KEY,
+  artista_id INT,
+  escenario_id INT,
+  fecha DATE,
+  hora TIME,
+  FOREIGN KEY (artista_id) REFERENCES Artista(artista_id),
+  FOREIGN KEY (escenario_id) REFERENCES Escenario(escenario_id)
+);
+
+CREATE TABLE Entrada (
+  entrada_id INT AUTO_INCREMENT PRIMARY KEY,
+  concierto_id INT,
+  tipo VARCHAR(50), -- General, VIP, Platino
+  precio DECIMAL(10,2),
+  FOREIGN KEY (concierto_id) REFERENCES Concierto(concierto_id)
+);
+
+CREATE TABLE Asistente (
+  asistente_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  correo VARCHAR(100)
+);
+
+CREATE TABLE Compra (
+  compra_id INT AUTO_INCREMENT PRIMARY KEY,
+  asistente_id INT,
+  entrada_id INT,
+  fecha_compra DATE,
+  cantidad INT,
+  FOREIGN KEY (asistente_id) REFERENCES Asistente(asistente_id),
+  FOREIGN KEY (entrada_id) REFERENCES Entrada(entrada_id)
+);
+
+-- INSERTS
+
+INSERT INTO Artista (nombre, genero) VALUES
+('Coldplay', 'Rock Alternativo'),
+('Karol G', 'Reguetón'),
+('Metallica', 'Metal'),
+('Feid', 'Urbano');
+
+INSERT INTO Escenario (nombre, ciudad, capacidad) VALUES
+('Estadio El Campín', 'Bogotá', 40000),
+('Movistar Arena', 'Bogotá', 12000),
+('Estadio Atanasio Girardot', 'Medellín', 45000);
+
+INSERT INTO Concierto (artista_id, escenario_id, fecha, hora) VALUES
+(1, 1, '2025-09-10', '19:00:00'),
+(2, 2, '2025-10-05', '20:00:00'),
+(3, 3, '2025-11-20', '21:00:00'),
+(4, 3, '2025-08-30', '20:30:00');
+
+INSERT INTO Entrada (concierto_id, tipo, precio) VALUES
+(1, 'General', 150.00),
+(1, 'VIP', 300.00),
+(2, 'General', 120.00),
+(3, 'Platino', 500.00);
+
+INSERT INTO Asistente (nombre, correo) VALUES
+('Laura Martínez', 'laura@example.com'),
+('Andrés Pérez', 'andres@example.com'),
+('Camila Ríos', 'camila@example.com');
+
+INSERT INTO Compra (asistente_id, entrada_id, fecha_compra, cantidad) VALUES
+(1, 1, '2025-08-01', 2),
+(2, 3, '2025-09-15', 1),
+(3, 4, '2025-09-20', 3);
+
+-- CONSULTAS
+
+-- 1. ¿Qué conciertos hay programados y dónde?
+SELECT A.nombre AS artista, E.nombre AS escenario, C.fecha, C.hora
+FROM Concierto C
+JOIN Artista A ON C.artista_id = A.artista_id
+JOIN Escenario E ON C.escenario_id = E.escenario_id;
+
+-- 2. Asistentes que compraron entradas
+SELECT Asis.nombre, En.tipo, En.precio, Co.cantidad
+FROM Compra Co
+JOIN Asistente Asis ON Co.asistente_id = Asis.asistente_id
+JOIN Entrada En ON Co.entrada_id = En.entrada_id;
+
+-- 3. Total de entradas vendidas por concierto
+SELECT C.concierto_id, A.nombre AS artista, SUM(Co.cantidad) AS total_vendidas
+FROM Compra Co
+JOIN Entrada En ON Co.entrada_id = En.entrada_id
+JOIN Concierto C ON En.concierto_id = C.concierto_id
+JOIN Artista A ON C.artista_id = A.artista_id
+GROUP BY C.concierto_id;
+
+-- 4. Escenarios con más de 30000 personas
+SELECT nombre, ciudad, capacidad
+FROM Escenario
+WHERE capacidad > 30000;
+
+-- SUBCONSULTAS
+
+-- Artistas con conciertos en Bogotá
+SELECT nombre FROM Artista
+WHERE artista_id IN (
+  SELECT artista_id FROM Concierto
+  WHERE escenario_id IN (
+    SELECT escenario_id FROM Escenario WHERE ciudad = 'Bogotá'
+  )
+);
+
+-- PROCEDIMIENTO
+
+DELIMITER $$
+CREATE PROCEDURE RegistrarCompra (
+  IN p_asistente_id INT,
+  IN p_entrada_id INT,
+  IN p_fecha DATE,
+  IN p_cantidad INT
+)
+BEGIN
+  INSERT INTO Compra(asistente_id, entrada_id, fecha_compra, cantidad)
+  VALUES (p_asistente_id, p_entrada_id, p_fecha, p_cantidad);
+END $$
+DELIMITER ;
+
+-- DROP
+
+DROP TABLE IF EXISTS Compra, Asistente, Entrada, Concierto, Escenario, Artista;
+DROP DATABASE GestionConciertos;

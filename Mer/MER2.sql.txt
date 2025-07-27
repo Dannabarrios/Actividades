@@ -1,0 +1,196 @@
+CREATE DATABASE RepuestosMotos;
+USE RepuestosMotos;
+
+-- TABLAS PRINCIPALES
+CREATE TABLE Marca (
+  marca_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100)
+);
+
+CREATE TABLE Repuesto (
+  repuesto_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  marca_id INT,
+  precio DECIMAL(10,2),
+  FOREIGN KEY (marca_id) REFERENCES Marca(marca_id)
+);
+
+CREATE TABLE Proveedor (
+  proveedor_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  telefono VARCHAR(20)
+);
+
+CREATE TABLE Cliente (
+  cliente_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  correo VARCHAR(100)
+);
+
+CREATE TABLE Sucursal (
+  sucursal_id INT AUTO_INCREMENT PRIMARY KEY,
+  direccion VARCHAR(100),
+  ciudad VARCHAR(50)
+);
+
+CREATE TABLE Compra (
+  cliente_id INT,
+  repuesto_id INT,
+  fecha DATE,
+  cantidad INT,
+  PRIMARY KEY (cliente_id, repuesto_id),
+  FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id),
+  FOREIGN KEY (repuesto_id) REFERENCES Repuesto(repuesto_id)
+);
+
+CREATE TABLE Suministro (
+  proveedor_id INT,
+  repuesto_id INT,
+  fecha_entrega DATE,
+  PRIMARY KEY (proveedor_id, repuesto_id),
+  FOREIGN KEY (proveedor_id) REFERENCES Proveedor(proveedor_id),
+  FOREIGN KEY (repuesto_id) REFERENCES Repuesto(repuesto_id)
+);
+
+-- ALTER TABLE
+ALTER TABLE Sucursal ADD gerente VARCHAR(100);
+ALTER TABLE Sucursal DROP COLUMN ciudad;
+
+-- INSERT
+INSERT INTO Marca (nombre) VALUES 
+('Yamaha'), ('Honda'), ('Bajaj');
+
+INSERT INTO Repuesto (nombre, marca_id, precio) VALUES 
+('Filtro de aceite', 1, 20000),
+('Pastillas de freno', 2, 35000),
+('Cadena de transmisión', 3, 45000);
+
+INSERT INTO Proveedor (nombre, telefono) VALUES 
+('Repuestera Huila', '3121234567'),
+('MotoDistribuciones S.A.S', '3207654321');
+
+INSERT INTO Cliente (nombre, correo) VALUES 
+('Carlos Molina', 'carlosm@gmail.com'),
+('Lucía Torres', 'lucia.torres@hotmail.com'),
+('Andrés Quintero', 'andres.q@gmail.com');
+
+INSERT INTO Sucursal (direccion, gerente) VALUES 
+('Cra 10 # 12-34', 'Daniel Gutiérrez'),
+('Cl 8 # 15-20', 'Laura Herrera');
+
+INSERT INTO Compra (cliente_id, repuesto_id, fecha, cantidad) VALUES 
+(1,1,'2023-04-01',2),
+(2,2,'2023-04-03',1),
+(3,3,'2023-04-05',3);
+
+INSERT INTO Suministro (proveedor_id, repuesto_id, fecha_entrega) VALUES 
+(1,1,'2023-03-20'),
+(2,2,'2023-03-22'),
+(1,3,'2023-03-25');
+
+-- UPDATE (5)
+UPDATE Cliente SET correo = 'c.molina2023@gmail.com' WHERE cliente_id = 1;
+UPDATE Repuesto SET precio = 21000 WHERE repuesto_id = 1;
+UPDATE Sucursal SET gerente = 'Daniela Gutiérrez' WHERE sucursal_id = 1;
+UPDATE Proveedor SET telefono = '3119998877' WHERE proveedor_id = 1;
+UPDATE Marca SET nombre = 'Yamaha Motor' WHERE marca_id = 1;
+
+-- DELETE (5)
+DELETE FROM Compra WHERE cliente_id = 1 AND repuesto_id = 1;
+DELETE FROM Suministro WHERE proveedor_id = 1 AND repuesto_id = 1;
+DELETE FROM Sucursal WHERE sucursal_id = 1;
+DELETE FROM Cliente WHERE cliente_id = 1;
+DELETE FROM Repuesto WHERE repuesto_id = 1;
+
+-- SELECT JOIN (5)
+SELECT Cliente.nombre AS cliente, Repuesto.nombre AS repuesto
+FROM Compra
+JOIN Cliente ON Compra.cliente_id = Cliente.cliente_id
+JOIN Repuesto ON Compra.repuesto_id = Repuesto.repuesto_id;
+
+SELECT Repuesto.nombre, Marca.nombre AS marca
+FROM Repuesto
+JOIN Marca ON Repuesto.marca_id = Marca.marca_id;
+
+SELECT Proveedor.nombre AS proveedor, Repuesto.nombre AS repuesto
+FROM Suministro
+JOIN Proveedor ON Suministro.proveedor_id = Proveedor.proveedor_id
+JOIN Repuesto ON Suministro.repuesto_id = Repuesto.repuesto_id;
+
+SELECT Cliente.nombre, COUNT(*) AS total_compras
+FROM Cliente
+JOIN Compra ON Cliente.cliente_id = Compra.cliente_id
+GROUP BY Cliente.cliente_id;
+
+SELECT Marca.nombre, COUNT(*) AS repuestos_marca
+FROM Marca
+JOIN Repuesto ON Marca.marca_id = Repuesto.marca_id
+GROUP BY Marca.marca_id;
+
+-- SUBCONSULTAS (5)
+SELECT nombre FROM Cliente
+WHERE cliente_id IN (
+  SELECT cliente_id FROM Compra WHERE repuesto_id = 2
+);
+
+SELECT nombre FROM Repuesto
+WHERE marca_id = (
+  SELECT marca_id FROM Marca WHERE nombre = 'Honda'
+);
+
+SELECT nombre FROM Proveedor
+WHERE proveedor_id = (
+  SELECT proveedor_id FROM Suministro WHERE repuesto_id = 3
+);
+
+SELECT nombre FROM Cliente
+WHERE cliente_id = (
+  SELECT cliente_id FROM Compra ORDER BY fecha ASC LIMIT 1
+);
+
+SELECT direccion FROM Sucursal
+WHERE sucursal_id = (
+  SELECT MAX(sucursal_id) FROM Sucursal
+);
+
+-- FUNCIONES AGREGADAS
+SELECT COUNT(*) AS total_clientes FROM Cliente;
+SELECT SUM(cantidad) FROM Compra;
+SELECT AVG(precio) FROM Repuesto;
+SELECT MIN(fecha) FROM Compra;
+SELECT MAX(fecha) FROM Compra;
+SELECT COUNT(DISTINCT repuesto_id) FROM Compra;
+SELECT SUM(precio) FROM Repuesto;
+SELECT AVG(cantidad) FROM Compra;
+SELECT COUNT(*) FROM Marca;
+SELECT SUM(marca_id) FROM Repuesto;
+
+-- PROCEDIMIENTO ALMACENADO
+DELIMITER $$
+
+CREATE PROCEDURE InsertarCompra (
+  IN p_cliente_id INT,
+  IN p_repuesto_id INT,
+  IN p_cantidad INT
+)
+BEGIN
+  INSERT INTO Compra(cliente_id, repuesto_id, fecha, cantidad)
+  VALUES (p_cliente_id, p_repuesto_id, CURDATE(), p_cantidad);
+END $$
+
+DELIMITER ;
+
+-- TRUNCATE
+TRUNCATE TABLE Compra;
+
+-- DROP TABLE
+DROP TABLE Suministro;
+DROP TABLE Compra;
+DROP TABLE Sucursal;
+DROP TABLE Cliente;
+DROP TABLE Proveedor;
+DROP TABLE Repuesto;
+DROP TABLE Marca;
+
+-- DROP DATABASE
+DROP DATABASE RepuestosMotos;

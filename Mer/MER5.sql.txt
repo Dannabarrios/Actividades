@@ -1,0 +1,178 @@
+CREATE DATABASE AgenciaViajes;
+USE AgenciaViajes;
+
+-- TABLAS PRINCIPALES
+
+CREATE TABLE Destino (
+  destino_id INT AUTO_INCREMENT PRIMARY KEY,
+  ciudad VARCHAR(100),
+  pais VARCHAR(100)
+);
+
+CREATE TABLE Cliente (
+  cliente_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  correo VARCHAR(100),
+  telefono VARCHAR(20)
+);
+
+CREATE TABLE Empleado (
+  empleado_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  cargo VARCHAR(50),
+  salario DECIMAL(10,2)
+);
+
+CREATE TABLE Paquete (
+  paquete_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  precio DECIMAL(10,2),
+  duracion_dias INT,
+  destino_id INT,
+  FOREIGN KEY (destino_id) REFERENCES Destino(destino_id)
+);
+
+CREATE TABLE Reserva (
+  reserva_id INT AUTO_INCREMENT PRIMARY KEY,
+  cliente_id INT,
+  paquete_id INT,
+  empleado_id INT,
+  fecha_reserva DATE,
+  total DECIMAL(10,2),
+  FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id),
+  FOREIGN KEY (paquete_id) REFERENCES Paquete(paquete_id),
+  FOREIGN KEY (empleado_id) REFERENCES Empleado(empleado_id)
+);
+
+-- ALTER TABLE
+ALTER TABLE Cliente DROP COLUMN telefono;
+ALTER TABLE Empleado ADD email VARCHAR(100);
+
+-- INSERT (10)
+INSERT INTO Destino (ciudad, pais) VALUES 
+('Cancún', 'México'),
+('Madrid', 'España'),
+('Buenos Aires', 'Argentina'),
+('Cartagena', 'Colombia');
+
+INSERT INTO Cliente (nombre, correo) VALUES 
+('Pedro López', 'pedrolopez@gmail.com'),
+('Lucía Gómez', 'lucia.gomez@hotmail.com'),
+('Juan Cárdenas', 'juancardenas@yahoo.com');
+
+INSERT INTO Empleado (nombre, cargo, salario, email) VALUES 
+('Laura Rincón', 'Asesora', 2500000, 'laura@viajes.com'),
+('David Torres', 'Gerente', 4000000, 'david@viajes.com');
+
+INSERT INTO Paquete (nombre, precio, duracion_dias, destino_id) VALUES 
+('Sol y Playa Cancún', 2500.00, 5, 1),
+('Tour Europa Madrid', 3500.00, 7, 2),
+('Buenos Aires Cultural', 2200.00, 6, 3),
+('Histórico Cartagena', 800.00, 3, 4);
+
+INSERT INTO Reserva (cliente_id, paquete_id, empleado_id, fecha_reserva, total) VALUES 
+(1,1,1,'2025-07-01',2500.00),
+(2,2,2,'2025-07-10',3500.00),
+(3,4,1,'2025-07-20',800.00);
+
+-- UPDATE (5)
+UPDATE Cliente SET correo = 'pedro.lopez@nuevo.com' WHERE cliente_id = 1;
+UPDATE Empleado SET salario = 2700000 WHERE empleado_id = 1;
+UPDATE Paquete SET precio = 3600.00 WHERE paquete_id = 2;
+UPDATE Destino SET ciudad = 'Madrid Centro' WHERE destino_id = 2;
+UPDATE Reserva SET total = 850.00 WHERE reserva_id = 3;
+
+-- DELETE (5)
+DELETE FROM Reserva WHERE reserva_id = 3;
+DELETE FROM Cliente WHERE cliente_id = 3;
+DELETE FROM Paquete WHERE paquete_id = 4;
+DELETE FROM Empleado WHERE empleado_id = 2;
+DELETE FROM Destino WHERE destino_id = 4;
+
+-- SELECT JOIN (5)
+SELECT Cliente.nombre, Reserva.fecha_reserva, Paquete.nombre AS paquete
+FROM Reserva
+JOIN Cliente ON Reserva.cliente_id = Cliente.cliente_id
+JOIN Paquete ON Reserva.paquete_id = Paquete.paquete_id;
+
+SELECT Paquete.nombre, Destino.ciudad, Destino.pais
+FROM Paquete
+JOIN Destino ON Paquete.destino_id = Destino.destino_id;
+
+SELECT Reserva.fecha_reserva, Empleado.nombre AS asesor
+FROM Reserva
+JOIN Empleado ON Reserva.empleado_id = Empleado.empleado_id;
+
+SELECT Cliente.nombre, Paquete.precio
+FROM Reserva
+JOIN Cliente ON Reserva.cliente_id = Cliente.cliente_id
+JOIN Paquete ON Reserva.paquete_id = Paquete.paquete_id;
+
+SELECT Empleado.nombre, COUNT(Reserva.reserva_id) AS total_reservas
+FROM Empleado
+JOIN Reserva ON Empleado.empleado_id = Reserva.empleado_id
+GROUP BY Empleado.nombre;
+
+-- SUBCONSULTAS (5)
+SELECT nombre FROM Cliente
+WHERE cliente_id = (SELECT cliente_id FROM Reserva ORDER BY total DESC LIMIT 1);
+
+SELECT nombre FROM Paquete
+WHERE paquete_id IN (
+  SELECT paquete_id FROM Reserva WHERE total > 2000
+);
+
+SELECT nombre FROM Empleado
+WHERE empleado_id = (
+  SELECT empleado_id FROM Reserva WHERE reserva_id = 1
+);
+
+SELECT ciudad FROM Destino
+WHERE destino_id = (
+  SELECT destino_id FROM Paquete WHERE nombre = 'Tour Europa Madrid'
+);
+
+SELECT nombre FROM Cliente
+WHERE cliente_id NOT IN (
+  SELECT cliente_id FROM Reserva
+);
+
+-- FUNCIONES AGREGADAS
+SELECT COUNT(*) FROM Cliente;
+SELECT SUM(total) FROM Reserva;
+SELECT AVG(precio) FROM Paquete;
+SELECT MIN(precio) FROM Paquete;
+SELECT MAX(precio) FROM Paquete;
+SELECT COUNT(DISTINCT destino_id) FROM Paquete;
+SELECT COUNT(*) FROM Reserva;
+SELECT SUM(duracion_dias) FROM Paquete;
+SELECT COUNT(*) FROM Destino;
+SELECT COUNT(*) FROM Empleado;
+
+-- PROCEDIMIENTO ALMACENADO
+DELIMITER $$
+
+CREATE PROCEDURE ActualizarPrecioPaquete (
+  IN p_paquete_id INT,
+  IN p_nuevo_precio DECIMAL(10,2)
+)
+BEGIN
+  UPDATE Paquete
+  SET precio = p_nuevo_precio
+  WHERE paquete_id = p_paquete_id;
+END $$
+
+DELIMITER ;
+
+-- TRUNCATE
+TRUNCATE TABLE Reserva;
+
+-- DROP TABLE
+DROP TABLE Reserva;
+DROP TABLE Cliente;
+DROP TABLE Paquete;
+DROP TABLE Destino;
+DROP TABLE Empleado;
+
+-- DROP DATABASE
+DROP DATABASE AgenciaViajes;

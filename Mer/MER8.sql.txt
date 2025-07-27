@@ -1,0 +1,158 @@
+CREATE DATABASE GimnasioPowerFit;
+USE GimnasioPowerFit;
+
+-- TABLAS PRINCIPALES
+
+CREATE TABLE Entrenador (
+  entrenador_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  especialidad VARCHAR(50)
+);
+
+CREATE TABLE Socio (
+  socio_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  fecha_ingreso DATE
+);
+
+CREATE TABLE Clase (
+  clase_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  horario VARCHAR(50),
+  entrenador_id INT,
+  FOREIGN KEY (entrenador_id) REFERENCES Entrenador(entrenador_id)
+);
+
+CREATE TABLE Rutina (
+  rutina_id INT AUTO_INCREMENT PRIMARY KEY,
+  descripcion TEXT,
+  nivel VARCHAR(20)
+);
+
+CREATE TABLE Socio_Clase (
+  socio_id INT,
+  clase_id INT,
+  PRIMARY KEY (socio_id, clase_id),
+  FOREIGN KEY (socio_id) REFERENCES Socio(socio_id),
+  FOREIGN KEY (clase_id) REFERENCES Clase(clase_id)
+);
+
+CREATE TABLE Rutina_Socio (
+  socio_id INT,
+  rutina_id INT,
+  PRIMARY KEY (socio_id, rutina_id),
+  FOREIGN KEY (socio_id) REFERENCES Socio(socio_id),
+  FOREIGN KEY (rutina_id) REFERENCES Rutina(rutina_id)
+);
+
+-- INSERTS
+
+INSERT INTO Entrenador (nombre, especialidad) VALUES
+('Jorge Ramos', 'Fuerza'),
+('Diana Torres', 'Cardio'),
+('Luis Herrera', 'Funcional');
+
+INSERT INTO Socio (nombre, fecha_ingreso) VALUES
+('Camila Rojas', '2025-06-01'),
+('Andrés Vélez', '2025-07-10'),
+('Tatiana Díaz', '2025-07-20');
+
+INSERT INTO Clase (nombre, horario, entrenador_id) VALUES
+('Spinning', 'Lun 7am', 2),
+('Crossfit', 'Mar 6pm', 1),
+('Yoga', 'Mié 8am', 3);
+
+INSERT INTO Rutina (descripcion, nivel) VALUES
+('Rutina de fuerza para principiantes', 'Básico'),
+('Cardio HIIT intermedio', 'Intermedio'),
+('Yoga relajante avanzada', 'Avanzado');
+
+INSERT INTO Socio_Clase (socio_id, clase_id) VALUES
+(1, 1),
+(2, 2),
+(3, 3);
+
+INSERT INTO Rutina_Socio (socio_id, rutina_id) VALUES
+(1, 1),
+(2, 2),
+(3, 3);
+
+-- UPDATES
+
+UPDATE Entrenador SET especialidad = 'Entrenamiento funcional' WHERE entrenador_id = 3;
+UPDATE Clase SET horario = 'Vie 7am' WHERE clase_id = 3;
+UPDATE Rutina SET nivel = 'Intermedio' WHERE rutina_id = 1;
+UPDATE Socio SET nombre = 'Camila Andrea Rojas' WHERE socio_id = 1;
+UPDATE Clase SET nombre = 'HIIT' WHERE clase_id = 2;
+
+-- DELETES
+
+DELETE FROM Socio_Clase WHERE socio_id = 2 AND clase_id = 2;
+DELETE FROM Rutina_Socio WHERE socio_id = 2 AND rutina_id = 2;
+DELETE FROM Clase WHERE clase_id = 2;
+DELETE FROM Rutina WHERE rutina_id = 2;
+DELETE FROM Socio WHERE socio_id = 2;
+
+-- SELECT JOIN
+
+SELECT S.nombre AS socio, C.nombre AS clase, E.nombre AS entrenador
+FROM Socio S
+JOIN Socio_Clase SC ON S.socio_id = SC.socio_id
+JOIN Clase C ON SC.clase_id = C.clase_id
+JOIN Entrenador E ON C.entrenador_id = E.entrenador_id;
+
+SELECT S.nombre, R.descripcion, R.nivel
+FROM Socio S
+JOIN Rutina_Socio RS ON S.socio_id = RS.socio_id
+JOIN Rutina R ON RS.rutina_id = R.rutina_id;
+
+-- AGREGADAS
+
+SELECT COUNT(*) AS total_socios FROM Socio;
+SELECT AVG(DAY(CURDATE()) - DAY(fecha_ingreso)) AS promedio_dias_desde_ingreso FROM Socio;
+SELECT COUNT(DISTINCT clase_id) FROM Socio_Clase;
+
+-- SUBCONSULTAS
+
+SELECT nombre FROM Clase
+WHERE entrenador_id = (
+  SELECT entrenador_id FROM Entrenador WHERE nombre = 'Diana Torres'
+);
+
+SELECT nombre FROM Socio
+WHERE socio_id IN (
+  SELECT socio_id FROM Rutina_Socio WHERE rutina_id = 3
+);
+
+SELECT nombre FROM Entrenador
+WHERE entrenador_id NOT IN (
+  SELECT entrenador_id FROM Clase
+);
+
+-- PROCEDIMIENTO
+
+DELIMITER $$
+
+CREATE PROCEDURE AsignarRutina (
+  IN p_socio_id INT,
+  IN p_rutina_id INT
+)
+BEGIN
+  INSERT INTO Rutina_Socio(socio_id, rutina_id)
+  VALUES (p_socio_id, p_rutina_id);
+END $$
+
+DELIMITER ;
+
+-- TRUNCATE Y DROP FINAL
+
+TRUNCATE TABLE Socio_Clase;
+
+DROP TABLE Rutina_Socio;
+DROP TABLE Socio_Clase;
+DROP TABLE Rutina;
+DROP TABLE Clase;
+DROP TABLE Socio;
+DROP TABLE Entrenador;
+
+DROP DATABASE GimnasioPowerFit;

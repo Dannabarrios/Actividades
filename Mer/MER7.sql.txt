@@ -1,0 +1,143 @@
+CREATE DATABASE CineLuz;
+USE CineLuz;
+
+-- TABLAS PRINCIPALES
+
+CREATE TABLE Pelicula (
+  pelicula_id INT AUTO_INCREMENT PRIMARY KEY,
+  titulo VARCHAR(100),
+  genero VARCHAR(50),
+  duracion INT, -- minutos
+  clasificacion VARCHAR(10)
+);
+
+CREATE TABLE Sala (
+  sala_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(50),
+  capacidad INT
+);
+
+CREATE TABLE Funcion (
+  funcion_id INT AUTO_INCREMENT PRIMARY KEY,
+  pelicula_id INT,
+  sala_id INT,
+  fecha DATE,
+  hora TIME,
+  FOREIGN KEY (pelicula_id) REFERENCES Pelicula(pelicula_id),
+  FOREIGN KEY (sala_id) REFERENCES Sala(sala_id)
+);
+
+CREATE TABLE Cliente (
+  cliente_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  correo VARCHAR(100)
+);
+
+CREATE TABLE Empleado (
+  empleado_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  cargo VARCHAR(50),
+  salario DECIMAL(10,2)
+);
+
+CREATE TABLE Boleto (
+  boleto_id INT AUTO_INCREMENT PRIMARY KEY,
+  funcion_id INT,
+  cliente_id INT,
+  empleado_id INT,
+  precio DECIMAL(10,2),
+  fecha_compra DATE,
+  FOREIGN KEY (funcion_id) REFERENCES Funcion(funcion_id),
+  FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id),
+  FOREIGN KEY (empleado_id) REFERENCES Empleado(empleado_id)
+);
+
+-- INSERTS
+
+INSERT INTO Pelicula (titulo, genero, duracion, clasificacion) VALUES
+('Matrix', 'Ciencia ficción', 136, 'M'),
+('Frozen', 'Animación', 102, 'A'),
+('Titanic', 'Drama', 195, 'T');
+
+INSERT INTO Sala (nombre, capacidad) VALUES
+('Sala 1', 80),
+('Sala 2', 120);
+
+INSERT INTO Funcion (pelicula_id, sala_id, fecha, hora) VALUES
+(1, 1, '2025-08-01', '18:00:00'),
+(2, 2, '2025-08-01', '15:30:00'),
+(3, 1, '2025-08-02', '20:00:00');
+
+INSERT INTO Cliente (nombre, correo) VALUES
+('Sofía Ramírez', 'sofia@gmail.com'),
+('Andrés Gómez', 'andres@hotmail.com');
+
+INSERT INTO Empleado (nombre, cargo, salario) VALUES
+('Laura Díaz', 'Taquillera', 1800000),
+('Julián Pérez', 'Administrador', 2500000);
+
+INSERT INTO Boleto (funcion_id, cliente_id, empleado_id, precio, fecha_compra) VALUES
+(1, 1, 1, 15000, '2025-07-27'),
+(2, 2, 1, 12000, '2025-07-27');
+
+-- UPDATE
+
+UPDATE Pelicula SET duracion = 140 WHERE titulo = 'Matrix';
+UPDATE Cliente SET correo = 'sofia.ramirez@gmail.com' WHERE cliente_id = 1;
+UPDATE Sala SET capacidad = 100 WHERE sala_id = 1;
+UPDATE Empleado SET salario = 1900000 WHERE empleado_id = 1;
+UPDATE Boleto SET precio = 13000 WHERE boleto_id = 2;
+
+-- DELETE
+
+DELETE FROM Boleto WHERE boleto_id = 2;
+DELETE FROM Cliente WHERE cliente_id = 2;
+DELETE FROM Funcion WHERE funcion_id = 3;
+DELETE FROM Pelicula WHERE pelicula_id = 3;
+DELETE FROM Empleado WHERE empleado_id = 2;
+
+-- SELECT JOIN
+
+SELECT Cliente.nombre, Pelicula.titulo, Funcion.fecha, Funcion.hora
+FROM Boleto
+JOIN Cliente ON Boleto.cliente_id = Cliente.cliente_id
+JOIN Funcion ON Boleto.funcion_id = Funcion.funcion_id
+JOIN Pelicula ON Funcion.pelicula_id = Pelicula.pelicula_id;
+
+SELECT Sala.nombre AS sala, Pelicula.titulo
+FROM Funcion
+JOIN Sala ON Funcion.sala_id = Sala.sala_id
+JOIN Pelicula ON Funcion.pelicula_id = Pelicula.pelicula_id;
+
+-- FUNCIONES AGREGADAS
+
+SELECT COUNT(*) AS total_boletos FROM Boleto;
+SELECT AVG(precio) AS promedio_precio FROM Boleto;
+SELECT MAX(salario) FROM Empleado;
+SELECT COUNT(*) AS total_funciones FROM Funcion;
+
+-- SUBCONSULTAS
+
+SELECT titulo FROM Pelicula
+WHERE pelicula_id = (
+  SELECT pelicula_id FROM Funcion WHERE funcion_id = 1
+);
+
+-- PROCEDIMIENTO
+
+DELIMITER $$
+CREATE PROCEDURE ActualizarPrecioBoleto (
+  IN p_boleto_id INT,
+  IN p_nuevo_precio DECIMAL(10,2)
+)
+BEGIN
+  UPDATE Boleto SET precio = p_nuevo_precio
+  WHERE boleto_id = p_boleto_id;
+END $$
+DELIMITER ;
+
+-- DROP & TRUNCATE
+
+TRUNCATE TABLE Boleto;
+DROP TABLE Boleto, Cliente, Funcion, Sala, Pelicula, Empleado;
+DROP DATABASE CineLuz;

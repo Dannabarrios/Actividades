@@ -1,0 +1,188 @@
+CREATE DATABASE CentroEntrenamiento;
+USE CentroEntrenamiento;
+
+-- TABLAS PRINCIPALES
+CREATE TABLE Disciplina (
+  disciplina_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100)
+);
+
+CREATE TABLE Entrenador (
+  entrenador_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  especialidad_id INT,
+  FOREIGN KEY (especialidad_id) REFERENCES Disciplina(disciplina_id)
+);
+
+CREATE TABLE Cliente (
+  cliente_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  edad INT,
+  correo VARCHAR(100)
+);
+
+CREATE TABLE Clase (
+  clase_id INT AUTO_INCREMENT PRIMARY KEY,
+  disciplina_id INT,
+  entrenador_id INT,
+  horario TIME,
+  dia_semana VARCHAR(20),
+  FOREIGN KEY (disciplina_id) REFERENCES Disciplina(disciplina_id),
+  FOREIGN KEY (entrenador_id) REFERENCES Entrenador(entrenador_id)
+);
+
+CREATE TABLE Membresia (
+  membresia_id INT AUTO_INCREMENT PRIMARY KEY,
+  cliente_id INT,
+  fecha_inicio DATE,
+  fecha_fin DATE,
+  tipo VARCHAR(50),
+  FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id)
+);
+
+CREATE TABLE Asistencia (
+  cliente_id INT,
+  clase_id INT,
+  fecha DATE,
+  PRIMARY KEY (cliente_id, clase_id, fecha),
+  FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id),
+  FOREIGN KEY (clase_id) REFERENCES Clase(clase_id)
+);
+
+-- ALTER TABLE
+ALTER TABLE Clase ADD sala VARCHAR(50);
+ALTER TABLE Cliente DROP COLUMN edad;
+
+-- INSERT
+INSERT INTO Disciplina (nombre) VALUES 
+('Crossfit'), ('Yoga'), ('Boxeo');
+
+INSERT INTO Entrenador (nombre, especialidad_id) VALUES 
+('Juan Morales', 1),
+('Sara Gómez', 2),
+('David Herrera', 3);
+
+INSERT INTO Cliente (nombre, correo) VALUES 
+('María Rojas', 'maria.r@gmail.com'),
+('Luis Vélez', 'luisv@hotmail.com'),
+('Camila Ortega', 'camila.o@gmail.com');
+
+INSERT INTO Clase (disciplina_id, entrenador_id, horario, dia_semana, sala) VALUES 
+(1, 1, '07:00:00', 'Lunes', 'Sala A'),
+(2, 2, '09:00:00', 'Martes', 'Sala B'),
+(3, 3, '18:00:00', 'Miércoles', 'Sala C');
+
+INSERT INTO Membresia (cliente_id, fecha_inicio, fecha_fin, tipo) VALUES 
+(1,'2025-07-01','2025-09-01','Mensual'),
+(2,'2025-07-15','2025-08-15','Mensual'),
+(3,'2025-06-01','2025-12-01','Semestral');
+
+INSERT INTO Asistencia (cliente_id, clase_id, fecha) VALUES 
+(1,1,'2025-07-20'),
+(2,2,'2025-07-21'),
+(3,3,'2025-07-22');
+
+-- UPDATE (5)
+UPDATE Cliente SET correo = 'maria.rojas2025@gmail.com' WHERE cliente_id = 1;
+UPDATE Entrenador SET nombre = 'Sara G. López' WHERE entrenador_id = 2;
+UPDATE Clase SET horario = '10:00:00' WHERE clase_id = 2;
+UPDATE Membresia SET tipo = 'Trimestral' WHERE membresia_id = 1;
+UPDATE Disciplina SET nombre = 'Funcional' WHERE disciplina_id = 1;
+
+-- DELETE (5)
+DELETE FROM Asistencia WHERE cliente_id = 1 AND clase_id = 1 AND fecha = '2025-07-20';
+DELETE FROM Membresia WHERE cliente_id = 1;
+DELETE FROM Clase WHERE clase_id = 1;
+DELETE FROM Cliente WHERE cliente_id = 1;
+DELETE FROM Entrenador WHERE entrenador_id = 1;
+
+-- SELECT JOIN (5)
+SELECT Cliente.nombre AS cliente, Clase.dia_semana, Disciplina.nombre AS disciplina
+FROM Asistencia
+JOIN Cliente ON Asistencia.cliente_id = Cliente.cliente_id
+JOIN Clase ON Asistencia.clase_id = Clase.clase_id
+JOIN Disciplina ON Clase.disciplina_id = Disciplina.disciplina_id;
+
+SELECT Entrenador.nombre, Disciplina.nombre AS especialidad
+FROM Entrenador
+JOIN Disciplina ON Entrenador.especialidad_id = Disciplina.disciplina_id;
+
+SELECT Clase.dia_semana, Sala, Entrenador.nombre
+FROM Clase
+JOIN Entrenador ON Clase.entrenador_id = Entrenador.entrenador_id;
+
+SELECT Cliente.nombre, COUNT(*) AS clases_asistidas
+FROM Asistencia
+JOIN Cliente ON Asistencia.cliente_id = Cliente.cliente_id
+GROUP BY Cliente.cliente_id;
+
+SELECT Disciplina.nombre, COUNT(*) AS total_clases
+FROM Clase
+JOIN Disciplina ON Clase.disciplina_id = Disciplina.disciplina_id
+GROUP BY Disciplina.disciplina_id;
+
+-- SUBCONSULTAS (5)
+SELECT nombre FROM Cliente
+WHERE cliente_id IN (
+  SELECT cliente_id FROM Asistencia WHERE clase_id = 2
+);
+
+SELECT nombre FROM Entrenador
+WHERE entrenador_id = (
+  SELECT entrenador_id FROM Clase WHERE clase_id = 2
+);
+
+SELECT nombre FROM Cliente
+WHERE cliente_id = (
+  SELECT cliente_id FROM Membresia ORDER BY fecha_inicio ASC LIMIT 1
+);
+
+SELECT nombre FROM Disciplina
+WHERE disciplina_id = (
+  SELECT disciplina_id FROM Clase WHERE clase_id = 3
+);
+
+SELECT nombre FROM Entrenador
+WHERE especialidad_id = (
+  SELECT disciplina_id FROM Disciplina WHERE nombre = 'Yoga'
+);
+
+-- FUNCIONES AGREGADAS
+SELECT COUNT(*) FROM Cliente;
+SELECT COUNT(*) FROM Clase;
+SELECT COUNT(*) FROM Asistencia;
+SELECT MIN(fecha_inicio) FROM Membresia;
+SELECT MAX(fecha_fin) FROM Membresia;
+SELECT AVG(HOUR(horario)) FROM Clase;
+SELECT COUNT(DISTINCT cliente_id) FROM Asistencia;
+SELECT COUNT(*) FROM Entrenador;
+SELECT SUM(HOUR(horario)) FROM Clase;
+SELECT COUNT(*) FROM Disciplina;
+
+-- PROCEDIMIENTO ALMACENADO
+DELIMITER $$
+
+CREATE PROCEDURE RegistrarAsistencia (
+  IN p_cliente_id INT,
+  IN p_clase_id INT
+)
+BEGIN
+  INSERT INTO Asistencia(cliente_id, clase_id, fecha)
+  VALUES (p_cliente_id, p_clase_id, CURDATE());
+END $$
+
+DELIMITER ;
+
+-- TRUNCATE
+TRUNCATE TABLE Asistencia;
+
+-- DROP TABLE
+DROP TABLE Asistencia;
+DROP TABLE Membresia;
+DROP TABLE Clase;
+DROP TABLE Cliente;
+DROP TABLE Entrenador;
+DROP TABLE Disciplina;
+
+-- DROP DATABASE
+DROP DATABASE CentroEntrenamiento;

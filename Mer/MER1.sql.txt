@@ -1,0 +1,187 @@
+CREATE DATABASE Heladeria;
+USE Heladeria;
+
+CREATE TABLE Categoria (
+  categoria_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100)
+);
+
+CREATE TABLE Empleado (
+  empleado_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  categoria_id INT,
+  FOREIGN KEY (categoria_id) REFERENCES Categoria(categoria_id)
+);
+
+CREATE TABLE Helado (
+  helado_id INT AUTO_INCREMENT PRIMARY KEY,
+  sabor VARCHAR(100),
+  categoria_id INT,
+  FOREIGN KEY (categoria_id) REFERENCES Categoria(categoria_id)
+);
+
+CREATE TABLE Cliente (
+  cliente_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  fecha_registro DATE
+);
+
+CREATE TABLE Mesa (
+  mesa_id INT AUTO_INCREMENT PRIMARY KEY,
+  ubicacion VARCHAR(50),
+  capacidad INT
+);
+
+CREATE TABLE Venta (
+  cliente_id INT,
+  helado_id INT,
+  fecha DATE,
+  PRIMARY KEY (cliente_id, helado_id),
+  FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id),
+  FOREIGN KEY (helado_id) REFERENCES Helado(helado_id)
+);
+
+CREATE TABLE Preparacion (
+  empleado_id INT,
+  helado_id INT,
+  horario VARCHAR(50),
+  PRIMARY KEY (empleado_id, helado_id),
+  FOREIGN KEY (empleado_id) REFERENCES Empleado(empleado_id),
+  FOREIGN KEY (helado_id) REFERENCES Helado(helado_id)
+);
+
+ALTER TABLE Mesa ADD piso INT;
+ALTER TABLE Mesa DROP COLUMN capacidad;
+
+INSERT INTO Categoria (nombre) VALUES 
+('Frutales'),
+('Cremosos'),
+('Veganos');
+
+INSERT INTO Empleado (nombre, categoria_id) VALUES 
+('Lucía Martínez', 1),
+('Juan Gómez', 2),
+('Sofía Herrera', 3);
+
+INSERT INTO Helado (sabor, categoria_id) VALUES 
+('Fresa', 1),
+('Chocolate', 2),
+('Mango Vegano', 3);
+
+INSERT INTO Cliente (nombre, fecha_registro) VALUES 
+('Camila Rojas','2024-01-10'),
+('Pedro Torres','2024-01-12'),
+('Luisa Díaz','2024-01-20');
+
+INSERT INTO Mesa (ubicacion, piso) VALUES 
+('Zona A', 1),
+('Zona B', 2),
+('Zona C', 3);
+
+INSERT INTO Venta (cliente_id, helado_id, fecha) VALUES 
+(1, 1, '2024-02-01'),
+(2, 2, '2024-02-05'),
+(3, 3, '2024-02-10');
+
+INSERT INTO Preparacion (empleado_id, helado_id, horario) VALUES 
+(1, 1, 'Lun 10am'),
+(2, 2, 'Mar 2pm'),
+(3, 3, 'Mié 4pm');
+
+UPDATE Cliente SET nombre = 'Camila Andrea Rojas' WHERE cliente_id = 1;
+UPDATE Helado SET sabor = 'Chocolate Amargo' WHERE helado_id = 2;
+UPDATE Mesa SET piso = 4 WHERE mesa_id = 1;
+UPDATE Empleado SET nombre = 'Lucía María Martínez' WHERE empleado_id = 1;
+UPDATE Categoria SET nombre = 'Helados Frutales' WHERE categoria_id = 1;
+
+DELETE FROM Venta WHERE cliente_id = 1 AND helado_id = 1;
+DELETE FROM Preparacion WHERE empleado_id = 1 AND helado_id = 1;
+DELETE FROM Mesa WHERE mesa_id = 1;
+DELETE FROM Cliente WHERE cliente_id = 1;
+DELETE FROM Helado WHERE helado_id = 1;
+
+SELECT Cliente.nombre AS cliente, Helado.sabor
+FROM Venta
+JOIN Cliente ON Venta.cliente_id = Cliente.cliente_id
+JOIN Helado ON Venta.helado_id = Helado.helado_id;
+
+SELECT Empleado.nombre AS empleado, Categoria.nombre AS categoria
+FROM Empleado
+JOIN Categoria ON Empleado.categoria_id = Categoria.categoria_id;
+
+SELECT Helado.sabor, Mesa.ubicacion, Mesa.piso
+FROM Helado
+JOIN Preparacion ON Helado.helado_id = Preparacion.helado_id
+JOIN Mesa ON Mesa.mesa_id = 2;
+
+SELECT Cliente.nombre AS cliente, COUNT(*) AS helados_comprados
+FROM Cliente
+JOIN Venta ON Cliente.cliente_id = Venta.cliente_id
+GROUP BY Cliente.cliente_id;
+
+SELECT Categoria.nombre AS categoria, COUNT(*) AS empleados
+FROM Categoria
+JOIN Empleado ON Categoria.categoria_id = Empleado.categoria_id
+GROUP BY Categoria.categoria_id;
+
+SELECT nombre FROM Cliente
+WHERE cliente_id IN (
+  SELECT cliente_id FROM Venta WHERE helado_id = 2
+);
+
+SELECT sabor FROM Helado
+WHERE categoria_id = (
+  SELECT categoria_id FROM Categoria WHERE nombre LIKE '%Frutales%'
+);
+
+SELECT nombre FROM Empleado
+WHERE categoria_id = (
+  SELECT categoria_id FROM Helado WHERE helado_id = 2
+);
+
+SELECT nombre FROM Cliente
+WHERE fecha_registro > (
+  SELECT MIN(fecha_registro) FROM Cliente
+);
+
+SELECT ubicacion FROM Mesa
+WHERE piso = (
+  SELECT MAX(piso) FROM Mesa
+);
+
+SELECT COUNT(*) AS total_clientes FROM Cliente;
+SELECT SUM(cliente_id) AS suma_id FROM Cliente;
+SELECT AVG(cliente_id) AS promedio_id FROM Cliente;
+SELECT MIN(fecha_registro) FROM Cliente;
+SELECT MAX(fecha_registro) FROM Cliente;
+SELECT COUNT(DISTINCT helado_id) FROM Venta;
+SELECT SUM(piso) FROM Mesa;
+SELECT AVG(piso) FROM Mesa;
+SELECT COUNT(*) FROM Empleado;
+SELECT SUM(categoria_id) FROM Empleado;
+
+DELIMITER $$
+
+CREATE PROCEDURE InsertarVentaSimple (
+  IN p_cliente_id INT,
+  IN p_helado_id INT
+)
+BEGIN
+  INSERT INTO Venta(cliente_id, helado_id, fecha)
+  VALUES (p_cliente_id, p_helado_id, CURDATE());
+END $$
+
+DELIMITER ;
+
+TRUNCATE TABLE Venta;
+
+DROP TABLE Preparacion;
+DROP TABLE Venta;
+DROP TABLE Mesa;
+DROP TABLE Cliente;
+DROP TABLE Helado;
+DROP TABLE Empleado;
+DROP TABLE Categoria;
+
+DROP DATABASE Heladeria;
+

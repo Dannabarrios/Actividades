@@ -1,0 +1,145 @@
+CREATE DATABASE FabricaChocoDelight;
+USE FabricaChocoDelight;
+
+-- TABLAS PRINCIPALES
+
+CREATE TABLE Empleado (
+  empleado_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  cargo VARCHAR(50)
+);
+
+CREATE TABLE Ingrediente (
+  ingrediente_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  cantidad_disponible_kg DECIMAL(10,2)
+);
+
+CREATE TABLE Producto (
+  producto_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  tipo VARCHAR(50),
+  precio_unitario DECIMAL(10,2)
+);
+
+CREATE TABLE Produccion (
+  produccion_id INT AUTO_INCREMENT PRIMARY KEY,
+  producto_id INT,
+  empleado_id INT,
+  fecha DATE,
+  cantidad_producida INT,
+  FOREIGN KEY (producto_id) REFERENCES Producto(producto_id),
+  FOREIGN KEY (empleado_id) REFERENCES Empleado(empleado_id)
+);
+
+CREATE TABLE Pedido (
+  pedido_id INT AUTO_INCREMENT PRIMARY KEY,
+  cliente VARCHAR(100),
+  fecha DATE,
+  total DECIMAL(10,2)
+);
+
+CREATE TABLE Detalle_Pedido (
+  pedido_id INT,
+  producto_id INT,
+  cantidad INT,
+  PRIMARY KEY (pedido_id, producto_id),
+  FOREIGN KEY (pedido_id) REFERENCES Pedido(pedido_id),
+  FOREIGN KEY (producto_id) REFERENCES Producto(producto_id)
+);
+
+-- INSERTS
+
+INSERT INTO Empleado (nombre, cargo) VALUES
+('Luis Martínez', 'Maestro Chocolatero'),
+('Ana Gómez', 'Empacadora'),
+('Carlos Ruiz', 'Supervisor');
+
+INSERT INTO Ingrediente (nombre, cantidad_disponible_kg) VALUES
+('Cacao', 500),
+('Azúcar', 300),
+('Leche en polvo', 200);
+
+INSERT INTO Producto (nombre, tipo, precio_unitario) VALUES
+('Chocolate amargo 70%', 'Tableta', 6.50),
+('Bombones rellenos', 'Caja', 15.00),
+('Chocolate con leche', 'Tableta', 5.00);
+
+INSERT INTO Produccion (producto_id, empleado_id, fecha, cantidad_producida) VALUES
+(1, 1, '2025-07-20', 500),
+(2, 1, '2025-07-21', 200),
+(3, 2, '2025-07-22', 300);
+
+INSERT INTO Pedido (cliente, fecha, total) VALUES
+('Tienda Dulce Sabor', '2025-07-23', 325.00),
+('Supermercado El Choco', '2025-07-24', 450.00);
+
+INSERT INTO Detalle_Pedido (pedido_id, producto_id, cantidad) VALUES
+(1, 1, 20),
+(1, 2, 5),
+(2, 2, 10),
+(2, 3, 30);
+
+-- UPDATES
+
+UPDATE Ingrediente SET cantidad_disponible_kg = cantidad_disponible_kg - 50 WHERE nombre = 'Cacao';
+UPDATE Producto SET precio_unitario = 5.50 WHERE producto_id = 3;
+UPDATE Empleado SET cargo = 'Jefe de Producción' WHERE empleado_id = 3;
+UPDATE Pedido SET total = 350.00 WHERE pedido_id = 1;
+
+-- DELETES
+
+DELETE FROM Detalle_Pedido WHERE pedido_id = 1 AND producto_id = 2;
+DELETE FROM Produccion WHERE produccion_id = 2;
+DELETE FROM Ingrediente WHERE nombre = 'Azúcar';
+DELETE FROM Empleado WHERE nombre = 'Ana Gómez';
+
+-- SELECT JOIN
+
+SELECT P.nombre AS producto, E.nombre AS empleado, PR.fecha, PR.cantidad_producida
+FROM Produccion PR
+JOIN Producto P ON PR.producto_id = P.producto_id
+JOIN Empleado E ON PR.empleado_id = E.empleado_id;
+
+SELECT PE.cliente, PR.nombre AS producto, DP.cantidad
+FROM Pedido PE
+JOIN Detalle_Pedido DP ON PE.pedido_id = DP.pedido_id
+JOIN Producto PR ON DP.producto_id = PR.producto_id;
+
+-- AGREGADAS
+
+SELECT COUNT(*) AS total_productos FROM Producto;
+SELECT AVG(precio_unitario) AS precio_promedio FROM Producto;
+SELECT SUM(cantidad_producida) AS total_produccion FROM Produccion;
+
+-- SUBCONSULTAS
+
+SELECT nombre FROM Producto
+WHERE producto_id IN (
+  SELECT producto_id FROM Detalle_Pedido WHERE pedido_id = 2
+);
+
+SELECT nombre FROM Ingrediente
+WHERE cantidad_disponible_kg < 250;
+
+-- PROCEDIMIENTO
+
+DELIMITER $$
+
+CREATE PROCEDURE RegistrarProduccion (
+  IN p_producto_id INT,
+  IN p_empleado_id INT,
+  IN p_fecha DATE,
+  IN p_cantidad INT
+)
+BEGIN
+  INSERT INTO Produccion(producto_id, empleado_id, fecha, cantidad_producida)
+  VALUES (p_producto_id, p_empleado_id, p_fecha, p_cantidad);
+END $$
+
+DELIMITER ;
+
+-- DROP
+
+DROP TABLE IF EXISTS Detalle_Pedido, Pedido, Produccion, Producto, Ingrediente, Empleado;
+DROP DATABASE FabricaChocoDelight;

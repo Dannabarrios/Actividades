@@ -1,0 +1,198 @@
+CREATE DATABASE TiendaInstrumentos;
+USE TiendaInstrumentos;
+
+-- TABLAS PRINCIPALES
+
+CREATE TABLE Categoria (
+  categoria_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100)
+);
+
+CREATE TABLE Proveedor (
+  proveedor_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  contacto VARCHAR(100)
+);
+
+CREATE TABLE Instrumento (
+  instrumento_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  precio DECIMAL(10,2),
+  stock INT,
+  categoria_id INT,
+  proveedor_id INT,
+  FOREIGN KEY (categoria_id) REFERENCES Categoria(categoria_id),
+  FOREIGN KEY (proveedor_id) REFERENCES Proveedor(proveedor_id)
+);
+
+CREATE TABLE Cliente (
+  cliente_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  correo VARCHAR(100),
+  telefono VARCHAR(20)
+);
+
+CREATE TABLE Empleado (
+  empleado_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  cargo VARCHAR(50)
+);
+
+CREATE TABLE Venta (
+  venta_id INT AUTO_INCREMENT PRIMARY KEY,
+  cliente_id INT,
+  empleado_id INT,
+  fecha DATE,
+  total DECIMAL(10,2),
+  FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id),
+  FOREIGN KEY (empleado_id) REFERENCES Empleado(empleado_id)
+);
+
+CREATE TABLE DetalleVenta (
+  venta_id INT,
+  instrumento_id INT,
+  cantidad INT,
+  precio_unitario DECIMAL(10,2),
+  PRIMARY KEY (venta_id, instrumento_id),
+  FOREIGN KEY (venta_id) REFERENCES Venta(venta_id),
+  FOREIGN KEY (instrumento_id) REFERENCES Instrumento(instrumento_id)
+);
+
+-- ALTER TABLE
+ALTER TABLE Empleado ADD salario DECIMAL(10,2);
+ALTER TABLE Cliente DROP COLUMN telefono;
+
+-- INSERT
+INSERT INTO Categoria (nombre) VALUES 
+('Cuerdas'), ('Percusión'), ('Viento'), ('Teclados');
+
+INSERT INTO Proveedor (nombre, contacto) VALUES 
+('MusicCorp', 'ventas@musiccorp.com'),
+('Sonidos Andinos', 'andinos@proveedores.com'),
+('JazzImports', 'contacto@jazzimports.com');
+
+INSERT INTO Instrumento (nombre, precio, stock, categoria_id, proveedor_id) VALUES 
+('Guitarra Acústica', 450.00, 15, 1, 1),
+('Batería Pearl', 1200.00, 3, 2, 2),
+('Saxofón Alto', 980.00, 5, 3, 3),
+('Teclado Yamaha', 700.00, 7, 4, 1);
+
+INSERT INTO Cliente (nombre, correo) VALUES 
+('Carlos Ramírez', 'carlosr@gmail.com'),
+('Ana Sofía Torres', 'ana.torres@hotmail.com'),
+('Mateo Ríos', 'mateorios@correo.com');
+
+INSERT INTO Empleado (nombre, cargo, salario) VALUES 
+('Luis Paredes', 'Vendedor', 2000000),
+('Laura Méndez', 'Administrador', 3000000);
+
+INSERT INTO Venta (cliente_id, empleado_id, fecha, total) VALUES 
+(1,1,'2025-07-20',450.00),
+(2,2,'2025-07-21',1680.00);
+
+INSERT INTO DetalleVenta (venta_id, instrumento_id, cantidad, precio_unitario) VALUES 
+(1,1,1,450.00),
+(2,2,1,1200.00),
+(2,3,1,480.00);
+
+-- UPDATE (5)
+UPDATE Instrumento SET stock = stock - 1 WHERE instrumento_id = 1;
+UPDATE Cliente SET correo = 'c.ramirez2025@gmail.com' WHERE cliente_id = 1;
+UPDATE Empleado SET salario = 3500000 WHERE empleado_id = 2;
+UPDATE Proveedor SET contacto = 'nuevocorreo@musiccorp.com' WHERE proveedor_id = 1;
+UPDATE Instrumento SET precio = 460.00 WHERE instrumento_id = 1;
+
+-- DELETE (5)
+DELETE FROM DetalleVenta WHERE venta_id = 1 AND instrumento_id = 1;
+DELETE FROM Venta WHERE venta_id = 1;
+DELETE FROM Cliente WHERE cliente_id = 1;
+DELETE FROM Instrumento WHERE instrumento_id = 1;
+DELETE FROM Proveedor WHERE proveedor_id = 1;
+
+-- SELECT JOIN (5)
+SELECT Cliente.nombre AS cliente, Venta.fecha, Venta.total
+FROM Venta
+JOIN Cliente ON Venta.cliente_id = Cliente.cliente_id;
+
+SELECT Instrumento.nombre, Categoria.nombre AS categoria
+FROM Instrumento
+JOIN Categoria ON Instrumento.categoria_id = Categoria.categoria_id;
+
+SELECT Venta.fecha, Empleado.nombre AS vendedor, Cliente.nombre AS cliente
+FROM Venta
+JOIN Empleado ON Venta.empleado_id = Empleado.empleado_id
+JOIN Cliente ON Venta.cliente_id = Cliente.cliente_id;
+
+SELECT Instrumento.nombre, Proveedor.nombre AS proveedor
+FROM Instrumento
+JOIN Proveedor ON Instrumento.proveedor_id = Proveedor.proveedor_id;
+
+SELECT DetalleVenta.cantidad, DetalleVenta.precio_unitario, Instrumento.nombre
+FROM DetalleVenta
+JOIN Instrumento ON DetalleVenta.instrumento_id = Instrumento.instrumento_id;
+
+-- SUBCONSULTAS (5)
+SELECT nombre FROM Cliente
+WHERE cliente_id = (SELECT cliente_id FROM Venta ORDER BY total DESC LIMIT 1);
+
+SELECT nombre FROM Instrumento
+WHERE instrumento_id IN (
+  SELECT instrumento_id FROM DetalleVenta WHERE cantidad >= 1
+);
+
+SELECT nombre FROM Empleado
+WHERE empleado_id = (
+  SELECT empleado_id FROM Venta WHERE venta_id = 2
+);
+
+SELECT nombre FROM Categoria
+WHERE categoria_id = (
+  SELECT categoria_id FROM Instrumento WHERE nombre = 'Saxofón Alto'
+);
+
+SELECT nombre FROM Proveedor
+WHERE proveedor_id IN (
+  SELECT proveedor_id FROM Instrumento WHERE precio > 800
+);
+
+-- FUNCIONES AGREGADAS
+SELECT COUNT(*) FROM Cliente;
+SELECT SUM(total) FROM Venta;
+SELECT AVG(precio) FROM Instrumento;
+SELECT MIN(precio) FROM Instrumento;
+SELECT MAX(precio) FROM Instrumento;
+SELECT COUNT(DISTINCT proveedor_id) FROM Instrumento;
+SELECT COUNT(*) FROM Venta;
+SELECT SUM(cantidad) FROM DetalleVenta;
+SELECT COUNT(*) FROM Categoria;
+SELECT COUNT(*) FROM Empleado;
+
+-- PROCEDIMIENTO ALMACENADO
+DELIMITER $$
+
+CREATE PROCEDURE ActualizarStock (
+  IN p_instrumento_id INT,
+  IN p_cantidad INT
+)
+BEGIN
+  UPDATE Instrumento
+  SET stock = stock - p_cantidad
+  WHERE instrumento_id = p_instrumento_id;
+END $$
+
+DELIMITER ;
+
+-- TRUNCATE
+TRUNCATE TABLE DetalleVenta;
+
+-- DROP TABLE
+DROP TABLE DetalleVenta;
+DROP TABLE Venta;
+DROP TABLE Cliente;
+DROP TABLE Instrumento;
+DROP TABLE Proveedor;
+DROP TABLE Empleado;
+DROP TABLE Categoria;
+
+-- DROP DATABASE
+DROP DATABASE TiendaInstrumentos;

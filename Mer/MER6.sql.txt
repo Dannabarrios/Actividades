@@ -1,0 +1,148 @@
+CREATE DATABASE VeterinariaAmigos;
+USE VeterinariaAmigos;
+
+-- TABLAS PRINCIPALES
+
+CREATE TABLE Cliente (
+  cliente_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  direccion VARCHAR(150),
+  correo VARCHAR(100)
+);
+
+CREATE TABLE Mascota (
+  mascota_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  especie VARCHAR(50),
+  raza VARCHAR(50),
+  edad INT,
+  cliente_id INT,
+  FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id)
+);
+
+CREATE TABLE Empleado (
+  empleado_id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100),
+  rol VARCHAR(50),
+  salario DECIMAL(10,2)
+);
+
+CREATE TABLE Tratamiento (
+  tratamiento_id INT AUTO_INCREMENT PRIMARY KEY,
+  descripcion VARCHAR(200),
+  costo DECIMAL(10,2)
+);
+
+CREATE TABLE Cita (
+  cita_id INT AUTO_INCREMENT PRIMARY KEY,
+  mascota_id INT,
+  empleado_id INT,
+  tratamiento_id INT,
+  fecha DATE,
+  observaciones TEXT,
+  FOREIGN KEY (mascota_id) REFERENCES Mascota(mascota_id),
+  FOREIGN KEY (empleado_id) REFERENCES Empleado(empleado_id),
+  FOREIGN KEY (tratamiento_id) REFERENCES Tratamiento(tratamiento_id)
+);
+
+-- INSERTS
+
+INSERT INTO Cliente (nombre, direccion, correo) VALUES
+('Carlos Pérez', 'Calle 123', 'carlos@gmail.com'),
+('Ana Torres', 'Av. Siempreviva 456', 'ana@hotmail.com'),
+('Luis Ramírez', 'Cra 10 #45-78', 'luis@yahoo.com');
+
+INSERT INTO Mascota (nombre, especie, raza, edad, cliente_id) VALUES
+('Max', 'Perro', 'Labrador', 5, 1),
+('Mía', 'Gato', 'Angora', 3, 2),
+('Rocky', 'Perro', 'Bulldog', 4, 3);
+
+INSERT INTO Empleado (nombre, rol, salario) VALUES
+('Dra. Paula Gómez', 'Veterinaria', 3500000),
+('Carlos Méndez', 'Auxiliar', 1800000);
+
+INSERT INTO Tratamiento (descripcion, costo) VALUES
+('Vacunación antirrábica', 50000),
+('Desparasitación interna', 40000),
+('Consulta general', 60000);
+
+INSERT INTO Cita (mascota_id, empleado_id, tratamiento_id, fecha, observaciones) VALUES
+(1, 1, 1, '2025-07-15', 'Aplicación sin complicaciones.'),
+(2, 1, 3, '2025-07-20', 'Presenta fiebre leve.'),
+(3, 2, 2, '2025-07-22', 'Requiere seguimiento.');
+
+-- UPDATE
+
+UPDATE Mascota SET edad = 6 WHERE mascota_id = 1;
+UPDATE Cliente SET correo = 'ana.torres@gmail.com' WHERE cliente_id = 2;
+UPDATE Empleado SET salario = 3700000 WHERE empleado_id = 1;
+UPDATE Tratamiento SET costo = 45000 WHERE tratamiento_id = 2;
+UPDATE Cita SET observaciones = 'Recuperación satisfactoria' WHERE cita_id = 2;
+
+-- DELETE
+
+DELETE FROM Cita WHERE cita_id = 3;
+DELETE FROM Mascota WHERE mascota_id = 3;
+DELETE FROM Cliente WHERE cliente_id = 3;
+DELETE FROM Tratamiento WHERE tratamiento_id = 3;
+DELETE FROM Empleado WHERE empleado_id = 2;
+
+-- SELECT JOIN
+
+SELECT Mascota.nombre AS mascota, Cliente.nombre AS dueño, Cita.fecha
+FROM Cita
+JOIN Mascota ON Cita.mascota_id = Mascota.mascota_id
+JOIN Cliente ON Mascota.cliente_id = Cliente.cliente_id;
+
+SELECT Empleado.nombre, Tratamiento.descripcion
+FROM Cita
+JOIN Empleado ON Cita.empleado_id = Empleado.empleado_id
+JOIN Tratamiento ON Cita.tratamiento_id = Tratamiento.tratamiento_id;
+
+SELECT Cliente.nombre, COUNT(Mascota.mascota_id) AS cantidad_mascotas
+FROM Cliente
+JOIN Mascota ON Cliente.cliente_id = Mascota.cliente_id
+GROUP BY Cliente.nombre;
+
+SELECT nombre FROM Mascota
+WHERE mascota_id NOT IN (SELECT mascota_id FROM Cita);
+
+-- SUBCONSULTAS
+
+SELECT nombre FROM Mascota
+WHERE mascota_id = (
+  SELECT mascota_id FROM Cita WHERE tratamiento_id = 1 LIMIT 1
+);
+
+SELECT nombre FROM Empleado
+WHERE empleado_id = (
+  SELECT empleado_id FROM Cita WHERE cita_id = 1
+);
+
+-- FUNCIONES AGREGADAS
+
+SELECT COUNT(*) FROM Cliente;
+SELECT COUNT(*) FROM Mascota;
+SELECT COUNT(*) FROM Cita;
+SELECT AVG(salario) FROM Empleado;
+SELECT MAX(costo) FROM Tratamiento;
+
+-- PROCEDIMIENTO
+
+DELIMITER $$
+CREATE PROCEDURE ActualizarCostoTratamiento (
+  IN p_tratamiento_id INT,
+  IN p_nuevo_costo DECIMAL(10,2)
+)
+BEGIN
+  UPDATE Tratamiento
+  SET costo = p_nuevo_costo
+  WHERE tratamiento_id = p_tratamiento_id;
+END $$
+DELIMITER ;
+
+-- TRUNCATE & DROP
+
+TRUNCATE TABLE Cita;
+DROP TABLE Cita, Mascota, Cliente, Empleado, Tratamiento;
+DROP DATABASE VeterinariaAmigos;
